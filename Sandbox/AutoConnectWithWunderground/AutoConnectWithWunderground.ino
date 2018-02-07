@@ -1,11 +1,10 @@
 #include <ESP8266WiFi.h>          //https://github.com/esp8266/Arduino
 
-//needed for library
 #include <DNSServer.h>
 #include <ESP8266WebServer.h>
 #include <WiFiManager.h>         //https://github.com/tzapu/WiFiManager
-
 #include <ArduinoJson.h>
+#include <string.h>
 
 // Use your own API key by signing up for a free developer account.
 // http://www.wunderground.com/weather/api/
@@ -44,6 +43,7 @@ void setup() {
     //WiFiManager
     //Local intialization. Once its business is done, there is no need to keep it around
     WiFiManager wifiManager;
+
     //reset saved settings
     //wifiManager.resetSettings();
     
@@ -69,11 +69,10 @@ bool showWeather(char *json);
 
 void loop() {
   
+  // Use WiFiClient class to create TCP connections
   // Open socket to WU server port 80
   Serial.print(F("Connecting to "));
   Serial.println(WUNDERGROUND);
-
-  // Use WiFiClient class to create TCP connections
   WiFiClient httpclient;
   const int httpPort = 80;
   if (!httpclient.connect(WUNDERGROUND, httpPort)) {
@@ -128,7 +127,7 @@ void loop() {
   respBuf[respLen++] = '\0';
   Serial.print(F("respLen "));
   Serial.println(respLen);
-  //Serial.println(respBuf);
+  Serial.println(respBuf);
 
   if (showWeather(respBuf)) {
     delay(DELAY_NORMAL);
@@ -169,35 +168,15 @@ bool showWeather(char *json)
   Serial.print(humi);   Serial.println(F(" RH"));
   const char *weather = current["weather"];
   Serial.println(weather);
+  String precip_today_in = current["precip_today_in"];
+  Serial.println(precip_today_in);
   const char *pressure_mb = current["pressure_mb"];
   Serial.println(pressure_mb);
   const char *observation_time = current["observation_time_rfc822"];
   Serial.println(observation_time);
-  //Date/time string looks like this
-  //Wed, 27 Jun 2012 17:27:14 -0700
-  //012345678901234567890
-  //          1         2
-  // // LCD has 14 characters per line so show date on one line and time on the
-  // // next. And shorten the date so it fits.
-  // char date[14+1];
-  // const char *time;
-  // //Wed, 27 Jun 12
-  // memcpy(date, observation_time, 12);
-  // memcpy(&date[12], &observation_time[14], 2);
-  // date[14] = '\0';
-  // //17:27:14 -0700
-  // time = &observation_time[17];
 
-  // display.clearDisplay();
-  // display.println(date);
-  // display.println(time);
-  // display.print(temp_f, 1); display.print  (F(" F "));
-  // display.print(temp_c, 1); display.println(F(" C"));
-  // display.print(humi);      display.print(F(" RH "));
-  // display.print(pressure_mb); display.println(F("mb"));
-  // display.setTextWrap(true);
-  // display.print(weather);
-  // display.display();
-  // display.setTextWrap(false);
+  if (precip_today_in.toFloat() > 0.02) {
+    Serial.println("It will rain today. Bring an umbrella!!") ;
+  }
   return true;
 }
