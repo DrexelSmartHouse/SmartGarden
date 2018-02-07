@@ -34,7 +34,7 @@ void WiFiManagerParameter::init(const char *id, const char *placeholder, const c
   _placeholder = placeholder;
   _length = length;
   _value = new char[length + 1];
-  for (int i = 0; i < length; i++) {
+  for (int i = 0; i < length + 1; i++) {
     _value[i] = 0;
   }
   if (defaultValue != NULL) {
@@ -42,6 +42,12 @@ void WiFiManagerParameter::init(const char *id, const char *placeholder, const c
   }
 
   _customHTML = custom;
+}
+
+WiFiManagerParameter::~WiFiManagerParameter() {
+  if (_value != NULL) {
+    delete[] _value;
+  }
 }
 
 const char* WiFiManagerParameter::getValue() {
@@ -60,22 +66,42 @@ const char* WiFiManagerParameter::getCustomHTML() {
   return _customHTML;
 }
 
+
 WiFiManager::WiFiManager() {
+    _max_params = WIFI_MANAGER_MAX_PARAMS;
+    _params = (WiFiManagerParameter**)malloc(_max_params * sizeof(WiFiManagerParameter*));
 }
 
-void WiFiManager::addParameter(WiFiManagerParameter *p) {
-  if(_paramsCount + 1 > WIFI_MANAGER_MAX_PARAMS)
+WiFiManager::~WiFiManager()
+{
+    if (_params != NULL)
+    {
+        DEBUG_WM(F("freeing allocated params!"));
+        free(_params);
+    }
+}
+
+bool WiFiManager::addParameter(WiFiManagerParameter *p) {
+  if(_paramsCount + 1 > _max_params)
   {
-    //Max parameters exceeded!
-	DEBUG_WM("WIFI_MANAGER_MAX_PARAMS exceeded, increase number (in WiFiManager.h) before adding more parameters!");
-	DEBUG_WM("Skipping parameter with ID:");
-	DEBUG_WM(p->getID());
-	return;
+    // rezise the params array
+    _max_params += WIFI_MANAGER_MAX_PARAMS;
+    DEBUG_WM(F("Increasing _max_params to:"));
+    DEBUG_WM(_max_params);
+    WiFiManagerParameter** new_params = (WiFiManagerParameter**)realloc(_params, _max_params * sizeof(WiFiManagerParameter*));
+    if (new_params != NULL) {
+      _params = new_params;
+    } else {
+      DEBUG_WM("ERROR: failed to realloc params, size not increased!");
+      return false;
+    }
   }
+
   _params[_paramsCount] = p;
   _paramsCount++;
   DEBUG_WM("Adding parameter");
   DEBUG_WM(p->getID());
+  return true;
 }
 
 void WiFiManager::setupConfigPortal() {
@@ -571,7 +597,7 @@ void WiFiManager::handleWifiSave() {
     //read parameter
     String value = server->arg(_params[i]->getID()).c_str();
     //store it in array
-    value.toCharArray(_params[i]->_value, _params[i]->_length);
+    value.toCharArray(_params[i]->_value, _params[i]->_length + 1);
     DEBUG_WM(F("Parameter"));
     DEBUG_WM(_params[i]->getID());
     DEBUG_WM(value);
