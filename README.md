@@ -4,7 +4,10 @@
 ## Contents
 - [Quick start](#quickstart)
   - [Necessary hardware](#necessaryhardware)
-  - [Network setup](#networksetup)
+  - [Necessary tools](#necessarytools)
+  - [Hardware setup](#hardwaresetup)
+    - [ESP8266 Feather](#esp8266feather)
+    - [Remote Solenoid](#remotesolenoid)
 - [Testing / Quality Assurance](#qa)
 - [Troubleshooting](#troubleshooting)
 - [Releases](#releases)
@@ -21,7 +24,15 @@ The following hardware is necessary to build the controller and valve system:
 - [Keyfob 4-Button RF Remote Control - 315MHz](https://www.adafruit.com/product/1095)
 - [Lithium Ion Battery - 3.7v 2000mAh](https://www.adafruit.com/product/2011)
 
-### Network setup <a name="networksetup"></a>
+### Necessary tools <a name="necessarytools"></a>
+These tools will be helpful for assembling this project
+...
+
+### Hardware setup <a name="necessarytools"></a>
+#### ESP8266 Feather <a name="esp8266feather"></a>
+...
+
+#### Remote Solenoid <a name="remotesolenoid"></a>
 ...
 
 ## Troubleshooting <a name="troubleshooting"></a>

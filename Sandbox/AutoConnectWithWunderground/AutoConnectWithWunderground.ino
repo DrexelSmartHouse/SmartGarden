@@ -1,3 +1,12 @@
+/**************************************************************
+ * Proof of functionality for the system:
+ * Tries to connect to last internet connection. If it doesn't
+ * work, it creates an access point to allow the user to enter
+ * credentials for a network. Once connected, it chcecks the
+ * weather on WU and sends a message over serial if it will 
+ * rain
+ **************************************************************/
+
 #include <ESP8266WiFi.h>          //https://github.com/esp8266/Arduino
 
 #include <DNSServer.h>
@@ -10,13 +19,7 @@
 // http://www.wunderground.com/weather/api/
 #define WU_API_KEY "5829c7aa493fd1a2"
 
-// Specify your favorite location one of these ways.
-//#define WU_LOCATION "CA/San_Francisco"
-
 // US ZIP code
-//#define WU_LOCATION "90210"
-
-// Country and city
 #define WU_LOCATION "19107"
 
 // 5 minutes between update checks. The free developer account has a limit
@@ -27,6 +30,9 @@
 
 #define WUNDERGROUND "api.wunderground.com"
 
+// This line toggles serial debugging
+#define SERIAL_DEBUG
+
 // HTTP request
 const char WUNDERGROUND_REQ[] =
     "GET /api/" WU_API_KEY "/conditions/q/" WU_LOCATION ".json HTTP/1.1\r\n"
@@ -36,53 +42,100 @@ const char WUNDERGROUND_REQ[] =
     "Connection: close\r\n"
     "\r\n";
 
+// json bufferr area
+static char respBuf[4096];
+
+// protos
+void getWeather() ;
+bool showWeather(char *json);
+
+/**************************************************************
+ * Function: setup
+ * ------------------------------------------------------------ 
+ * summary: Uses wifiManager to create a wifi connection using 
+ * past credentials and if they don't work an access point is 
+ * opened to add new credentials
+ * parameters: void
+ * return: void
+ **************************************************************/
 void setup() {
-    // put your setup code here, to run once:
+
+    #ifdef SERIAL_DEBUG
     Serial.begin(115200);
+    #endif
 
     //WiFiManager
     //Local intialization. Once its business is done, there is no need to keep it around
     WiFiManager wifiManager;
+    #ifdef SERIAL_DEBUG
+    wifiManager.setDebugOutput(false);
+    #endif
 
     //reset saved settings
     //wifiManager.resetSettings();
     
     //set custom ip for portal
-    //wifiManager.setAPStaticIPConfig(IPAddress(10,0,1,1), IPAddress(10,0,1,1), IPAddress(255,255,255,0));
+    wifiManager.setAPStaticIPConfig(IPAddress(10,0,1,1), IPAddress(10,0,1,1), IPAddress(255,255,255,0));
 
     //fetches ssid and pass from eeprom and tries to connect
     //if it does not connect it starts an access point with the specified name
-    //here  "AutoConnectAP"
     //and goes into a blocking loop awaiting configuration
     wifiManager.autoConnect("AutoConnectAP");
-    //or use this for auto generated name ESP + ChipID
-    //wifiManager.autoConnect();
-
     
     //if you get here you have connected to the WiFi
+    #ifdef SERIAL_DEBUG
     Serial.println("connected...yeey :)");
+    #endif
 }
 
-static char respBuf[4096];
-
-bool showWeather(char *json);
-
+/**************************************************************
+ * Function: loop
+ * ------------------------------------------------------------ 
+ * summary: calls getWeather and showWeather
+ * parameters: void
+ * return: void
+ **************************************************************/
 void loop() {
-  
+
+  getWeather() ;
+
+  if (showWeather(respBuf)) {
+    delay(DELAY_NORMAL);
+  }
+  else {
+    delay(DELAY_ERROR);
+  }
+}
+
+/**************************************************************
+ * Function: getWeather
+ * ------------------------------------------------------------ 
+ * summary: opens socket to WU and requests weather data, when
+ * data is received it stores it in respBuf
+ * parameters: void
+ * return: void
+ **************************************************************/
+void getWeather() {
   // Use WiFiClient class to create TCP connections
   // Open socket to WU server port 80
+  #ifdef SERIAL_DEBUG
   Serial.print(F("Connecting to "));
   Serial.println(WUNDERGROUND);
+  #endif
   WiFiClient httpclient;
   const int httpPort = 80;
   if (!httpclient.connect(WUNDERGROUND, httpPort)) {
+    #ifdef SERIAL_DEBUG
     Serial.println(F("connection failed"));
+    #endif
     delay(DELAY_ERROR);
     return;
   }
 
   // This will send the http request to the server
+  #ifdef SERIAL_DEBUG
   Serial.print(WUNDERGROUND_REQ);
+  #endif
   httpclient.print(WUNDERGROUND_REQ);
   httpclient.flush();
 
@@ -103,14 +156,18 @@ void loop() {
     else {
       int bytesIn;
       bytesIn = httpclient.read((uint8_t *)&respBuf[respLen], sizeof(respBuf) - respLen);
+      #ifdef SERIAL_DEBUG
       Serial.print(F("bytesIn ")); Serial.println(bytesIn);
+      #endif
       if (bytesIn > 0) {
         respLen += bytesIn;
         if (respLen > sizeof(respBuf)) respLen = sizeof(respBuf);
       }
       else if (bytesIn < 0) {
+        #ifdef SERIAL_DEBUG
         Serial.print(F("read error "));
         Serial.println(bytesIn);
+        #endif
       }
     }
     delay(1);
@@ -118,25 +175,30 @@ void loop() {
   httpclient.stop();
 
   if (respLen >= sizeof(respBuf)) {
+    #ifdef SERIAL_DEBUG
     Serial.print(F("respBuf overflow "));
     Serial.println(respLen);
+    #endif
     delay(DELAY_ERROR);
     return;
   }
   // Terminate the C string
   respBuf[respLen++] = '\0';
+  #ifdef SERIAL_DEBUG
   Serial.print(F("respLen "));
   Serial.println(respLen);
   Serial.println(respBuf);
-
-  if (showWeather(respBuf)) {
-    delay(DELAY_NORMAL);
-  }
-  else {
-    delay(DELAY_ERROR);
-  }
+  #endif
 }
 
+/**************************************************************
+ * Function: showWeather
+ * ------------------------------------------------------------ 
+ * summary: parses the json and sends requested data over 
+ * serial
+ * parameters: char *json
+ * return: bool
+ **************************************************************/
 bool showWeather(char *json)
 {
   StaticJsonBuffer<3*1024> jsonBuffer;
@@ -146,7 +208,9 @@ bool showWeather(char *json)
   char *jsonstart = strchr(json, '{');
   //Serial.print(F("jsonstart ")); Serial.println(jsonstart);
   if (jsonstart == NULL) {
+    #ifdef SERIAL_DEBUG
     Serial.println(F("JSON data missing"));
+    #endif
     return false;
   }
   json = jsonstart;
@@ -154,29 +218,25 @@ bool showWeather(char *json)
   // Parse JSON
   JsonObject& root = jsonBuffer.parseObject(json);
   if (!root.success()) {
+    #ifdef SERIAL_DEBUG
     Serial.println(F("jsonBuffer.parseObject() failed"));
+    #endif
     return false;
   }
 
   // Extract weather info from parsed JSON
   JsonObject& current = root["current_observation"];
-  const float temp_f = current["temp_f"];
-  Serial.print(temp_f, 1); Serial.print(F(" F, "));
-  const float temp_c = current["temp_c"];
-  Serial.print(temp_c, 1); Serial.print(F(" C, "));
-  const char *humi = current[F("relative_humidity")];
-  Serial.print(humi);   Serial.println(F(" RH"));
-  const char *weather = current["weather"];
-  Serial.println(weather);
   String precip_today_in = current["precip_today_in"];
-  Serial.println(precip_today_in);
-  const char *pressure_mb = current["pressure_mb"];
-  Serial.println(pressure_mb);
   const char *observation_time = current["observation_time_rfc822"];
+  #ifdef SERIAL_DEBUG
+  Serial.println(precip_today_in);
   Serial.println(observation_time);
+  #endif
 
   if (precip_today_in.toFloat() > 0.02) {
+    #ifdef SERIAL_DEBUG
     Serial.println("It will rain today. Bring an umbrella!!") ;
+    #endif
   }
   return true;
 }
