@@ -15,6 +15,7 @@
 #include <ArduinoJson.h>
 #include <string.h>
 
+
 // Use your own API key by signing up for a free developer account.
 // http://www.wunderground.com/weather/api/
 #define WU_API_KEY "5829c7aa493fd1a2"
@@ -30,8 +31,9 @@
 
 #define WUNDERGROUND "api.wunderground.com"
 
-// This line toggles serial debugging
-#define SERIAL_DEBUG
+#define SERIAL_DEBUG          // This line toggles serial debugging
+#define PRINT_JSON            // This line toggles the printing of the full json
+
 
 // HTTP request
 const char WUNDERGROUND_REQ[] =
@@ -42,8 +44,10 @@ const char WUNDERGROUND_REQ[] =
     "Connection: close\r\n"
     "\r\n";
 
+
 // json bufferr area
 static char respBuf[4096];
+
 
 // protos
 void getWeather() ;
@@ -67,7 +71,7 @@ void setup() {
     //WiFiManager
     //Local intialization. Once its business is done, there is no need to keep it around
     WiFiManager wifiManager;
-    #ifdef SERIAL_DEBUG
+    #ifndef SERIAL_DEBUG
     wifiManager.setDebugOutput(false);
     #endif
 
@@ -187,7 +191,9 @@ void getWeather() {
   #ifdef SERIAL_DEBUG
   Serial.print(F("respLen "));
   Serial.println(respLen);
+  #ifdef PRINT_JSON
   Serial.println(respBuf);
+  #endif
   #endif
 }
 
@@ -227,10 +233,12 @@ bool showWeather(char *json)
   // Extract weather info from parsed JSON
   JsonObject& current = root["current_observation"];
   String precip_today_in = current["precip_today_in"];
-  const char *observation_time = current["observation_time_rfc822"];
+  String observation_time = current["observation_time_rfc822"];
+  String local_epoch = current["local_epoch"];
   #ifdef SERIAL_DEBUG
   Serial.println(precip_today_in);
   Serial.println(observation_time);
+  Serial.println(local_epoch);
   #endif
 
   if (precip_today_in.toFloat() > 0.02) {
