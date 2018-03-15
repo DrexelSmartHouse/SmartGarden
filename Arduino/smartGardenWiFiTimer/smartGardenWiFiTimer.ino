@@ -31,7 +31,7 @@ extern "C" {
 #define STATE_WAKEUP_ACTION 4
 
 #define SLEEP_TIME 60*60*1000000                        // sleep intervals in us
-#define SLEEP_COUNTS_FOR_ACTION 16 //time that the device will connect to wifi every day
+#define SLEEP_COUNTS_FOR_ACTION 9 //time that the device will connect to wifi every day
 //#define SLEEP_COUNTS_FOR_BATT_CHECK 2 //2*24
 //#define BATT_WARNING_VOLTAGE 2.4
 #define WIFI_CONNECT_TIMEOUT_S 20
@@ -181,7 +181,7 @@ void setup() {
 
 		// time to perform actions while wifi is on
 		sleepCount = getTime();
-		if (sleepCount == 16) {
+		if (sleepCount == SLEEP_COUNTS_FOR_ACTION) {
 			getWeather();
 			parseWeather(respBuf);
 		}
