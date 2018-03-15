@@ -8,7 +8,6 @@
   - [Hardware setup](#hardwaresetup)
     - [ESP8266 Feather](#esp8266feather)
     - [Remote Solenoid](#remotesolenoid)
-- [Testing / Quality Assurance](#qa)
 - [Troubleshooting](#troubleshooting)
 - [Releases](#releases)
 - [Contributors](#contributors)
