@@ -5,7 +5,7 @@
  * 
  * By Tim Lechman
  * 
- * Last edited: 3/15/2018
+ * Last edited: 3/18/2018
  **************************************************************/
 
 #include <ESP8266WiFi.h>
@@ -24,6 +24,13 @@ extern "C" {
 #include <ArduinoJson.h>
 #include <string.h>
 #include <WiFiUdp.h>
+#include <credentials.h>
+
+myCredentials myCredentials;
+
+int wifiName = 1;
+char* ssid = myCredentials.ssid(wifiName); 
+char* pwd = myCredentials.pwd(wifiName);
 
 // state definitions
 #define STATE_COLDSTART 0
@@ -36,7 +43,7 @@ extern "C" {
 //#define BATT_WARNING_VOLTAGE 2.4
 #define WIFI_CONNECT_TIMEOUT_S 20
 
-// RTC-MEM Adresses
+// RTC-MEM Addresses
 #define RTC_BASE 65
 #define RTC_STATE 66
 #define RTC_WAKE_COUNT 67
@@ -44,11 +51,6 @@ extern "C" {
 #define VCC_ADJ 1.096
 
 #define SERIAL_DEBUG
-
-//WiFi credentials
-//char SSID[] = "DRXL-SMARTHOUSE-2.4"; char PASS[] = "3kq8b3kq8b";
-//char SSID[] = "Mr. Wifi"; char PASS[] = "joyoussocks146";
-char SSID[] = "BG-Guest"; char PASS[] = "!!Guest$*";
 
 // global variables
 byte buf[10];
@@ -247,7 +249,7 @@ void connectToWiFi() {
 		Serial.print("Connecting to ");
 		Serial.println("wifi");
 	#endif
-	WiFi.begin(SSID, PASS);
+	WiFi.begin(ssid, pwd);
 	while (WiFi.status() != WL_CONNECTED) {
 		delay(500);
 		#ifdef SERIAL_DEBUG
