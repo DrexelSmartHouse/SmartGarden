@@ -28,9 +28,8 @@ extern "C" {
 
 myCredentials myCredentials;
 
-int wifiName = 1;
-char* ssid = myCredentials.ssid(wifiName); 
-char* pwd = myCredentials.pwd(wifiName);
+char* ssid = myCredentials.ssid(); 
+char* pwd = myCredentials.pwd();
 
 // state definitions
 #define STATE_COLDSTART 0
